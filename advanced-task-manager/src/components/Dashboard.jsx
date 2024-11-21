@@ -5,21 +5,31 @@ import { IoClose } from "react-icons/io5";
 import { FaCheck } from "react-icons/fa";
 
 const Dashboard = () => {
-  const [taskGroups, setTaskGroups] = useState([]);
+  const storedTaskGroups = JSON.parse(localStorage.getItem("taskGroups")) || [];
+  const [taskGroups, setTaskGroups] = useState(storedTaskGroups);
   const [currentGroup, setCurrentGroup] = useState(null);
   const [currentWindow, setCurrentWindow] = useState("dashboard");
-  const priorityValues = ["Low", "Medium", "High", "Urgent"];
+  const priorities = ["Low", "Medium", "High", "Critical"];
 
   const groupInput = useRef();
   const colorInput = useRef();
   const taskInput = useRef();
 
+  const handleSetCurrentGroup = (group) => {
+    setCurrentGroup(group);
+    setCurrentWindow("taskView");
+  }
+
+  useEffect(() => {
+    localStorage.setItem("taskGroups", JSON.stringify(taskGroups));
+  }, [taskGroups]);
+
   // Main Objective 11/20/24: Implement selecting colors and urgency for tasks as well as fully implement the side nav. Also add local storage.
   // Side Objectives 11/20/24:
 
   return (
-    <div className="w-full h-full relative lg:px-siteXLg px-siteXSm lg:pl-[4.7rem] pl-[4.7rem]">
-      <SideNav></SideNav>
+    <div className="w-full h-full relative lg:px-siteXLg px-siteXSm lg:pl-[4.7rem]">
+      <SideNav taskGroups={taskGroups} handleSetCurrentGroup={handleSetCurrentGroup}></SideNav>
       {currentWindow === "dashboard" ? (
         <div className="flex flex-col justify-center items-center w-full">
           <h1 className="mt-5 text-2xl font-bold">Dashboard</h1>
@@ -74,6 +84,7 @@ const Dashboard = () => {
                     defaultValue={group.color}
                     onChange={(e) => {
                       group.color = e.target.value;
+                      localStorage.setItem("taskGroups", JSON.stringify(taskGroups));
                     }}
                   ></input>
                   <IoClose
@@ -136,26 +147,40 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="flex flex-col items-center w-full mt-[5rem]">
-            {taskGroups[currentGroup].tasks.map((task, index) => (
+            {taskGroups[currentGroup].tasks.map((task, taskIndex) => (
               <div
                 className={`flex justify-between items-center w-full max-w-[35rem] py-2 px-5 bg-${
-                  index % 2 === 0 ? "neutral-200" : "neutral-300"
+                  taskIndex % 2 === 0 ? "neutral-200" : "neutral-300"
                 }
             } cursor-pointer`}
-                key={index}
+                key={taskIndex}
               >
                 <p className="flex-1 w-full overflow-hidden whitespace-nowrap text-ellipsis font-mono">
                   {task.name}
                 </p>
                 <div className="flex flex-1 justify-end items-center gap-5">
-                  <p className="font-mono" onClick={() => {
-                    task.priority++;
-                    if (task.priority === 5) {
-                      task.prority === 0;
-                    }
-                    setTaskGroups(taskGroups);
-                  }}>
-                    Priority: {priorityValues[task.priority]}
+                  <p
+                    className="font-mono text-right"
+                    onClick={() => {
+                      let newTaskArray = taskGroups[currentGroup].tasks;
+                      if (newTaskArray[taskIndex].priority === 3) {
+                        newTaskArray[taskIndex].priority = 0;
+                      } else {
+                        newTaskArray[taskIndex].priority++;
+                      }
+                      setTaskGroups((prevGroups) =>
+                        prevGroups.map((group, idx) =>
+                          idx === currentGroup
+                            ? {
+                                ...group,
+                                tasks: newTaskArray,
+                              }
+                            : group
+                        )
+                      );
+                    }}
+                  >
+                    Priority: {priorities[task.priority]}
                   </p>
                   <IoClose
                     className="cursor-pointer"
@@ -167,7 +192,7 @@ const Dashboard = () => {
                             ? {
                                 ...group,
                                 tasks: group.tasks.filter(
-                                  (_, i) => i !== index
+                                  (_, i) => i !== taskIndex
                                 ),
                               }
                             : group
